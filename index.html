@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Otto — Your AI Chief of Staff</title>
+<meta name="description" content="Otto is the AI chief of staff every founder deserves. It triages your inbox, owns your calendar, tracks your follow-ups, and briefs you every morning. Join the waitlist." />
+<style>
+  :root{
+    --bg:#07070f;
+    --bg-2:#0d0d1f;
+    --card:rgba(255,255,255,0.04);
+    --card-border:rgba(255,255,255,0.09);
+    --text:#f4f4fb;
+    --muted:#a0a0bd;
+    --faint:#6e6e8c;
+    --accent-1:#6366f1;
+    --accent-2:#a855f7;
+    --accent-3:#ec4899;
+    --ok:#34d399;
+    --warn:#fbbf24;
+    --hot:#fb7185;
+    --radius:20px;
+    --maxw:1120px;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font);
+    color:var(--text);
+    background:var(--bg);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* animated "jelly" purple background */
+  .bg-glow{position:fixed;inset:0;z-index:-1;overflow:hidden;background:#07070f}
+  .blob{
+    position:absolute;border-radius:50%;filter:blur(82px);
+    mix-blend-mode:screen;opacity:.58;will-change:transform;
+  }
+  .b1{width:680px;height:680px;top:-140px;left:-120px;
+      background:radial-gradient(circle at 50% 50%,#7c3aed,transparent 66%);
+      animation:drift1 16s ease-in-out infinite;}
+  .b2{width:720px;height:720px;bottom:-200px;right:-140px;
+      background:radial-gradient(circle at 50% 50%,#9333ea,transparent 66%);
+      animation:drift2 19s ease-in-out infinite;}
+  .b3{width:600px;height:600px;top:6%;left:30%;
+      background:radial-gradient(circle at 50% 50%,#6d28d9,transparent 66%);
+      animation:drift3 14s ease-in-out infinite;}
+  .b4{width:560px;height:560px;top:42%;left:0%;
+      background:radial-gradient(circle at 50% 50%,#7e22ce,transparent 66%);
+      animation:drift4 17s ease-in-out infinite;}
+  .b5{width:520px;height:520px;top:28%;right:4%;
+      background:radial-gradient(circle at 50% 50%,#a21caf,transparent 66%);
+      animation:drift5 13s ease-in-out infinite;}
+  @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(220px,170px) scale(1.3)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-240px,-150px) scale(1.35)}}
+  @keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(190px,-130px) scale(1.25)}}
+  @keyframes drift4{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(270px,-90px) scale(1.3)}}
+  @keyframes drift5{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-210px,130px) scale(1.28)}}
+  @media (prefers-reduced-motion: reduce){ .blob{animation:none} }
+  .bg-grid{
+    position:fixed;inset:0;z-index:-1;
+    background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:54px 54px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 40%,transparent 100%);
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* NAV */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:rgba(7,7,15,.6);
+    border-bottom:1px solid rgba(255,255,255,.05);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .logo{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2) 55%,var(--accent-3));
+    display:grid;place-items:center;font-weight:800;color:#fff;font-size:17px;
+    box-shadow:0 6px 20px rgba(168,85,247,.45);
+  }
+  .brand small{font-weight:500;color:var(--muted);font-size:12.5px;letter-spacing:0}
+  .nav-links{display:flex;align-items:center;gap:26px;font-size:14.5px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .pill-count{
+    display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);
+    background:var(--card);border:1px solid var(--card-border);padding:6px 12px;border-radius:999px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  @media(max-width:720px){.nav-links a:not(.pill-count){display:none}}
+
+  /* HERO */
+  .hero{padding:62px 0 40px;text-align:center;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--muted);
+    background:var(--card);border:1px solid var(--card-border);
+    padding:7px 15px;border-radius:999px;margin-bottom:26px;
+  }
+  .eyebrow b{color:var(--text);font-weight:600}
+  h1{
+    font-size:clamp(38px,6.4vw,68px);line-height:1.04;letter-spacing:-.035em;font-weight:800;
+    margin:0 auto 20px;max-width:14ch;text-shadow:0 2px 28px rgba(4,2,12,.6);
+  }
+  .grad{
+    background:linear-gradient(110deg,var(--accent-1),var(--accent-2) 45%,var(--accent-3));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{font-size:clamp(16px,2.1vw,20px);color:var(--muted);max-width:46ch;margin:0 auto 14px;text-shadow:0 1px 18px rgba(4,2,12,.65)}
+
+  /* EARLY-ACCESS OFFER */
+  .offer{max-width:520px;margin:30px auto 0;text-align:center}
+  .offer-tag{
+    display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:#fde68a;font-weight:600;
+    background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);
+    padding:8px 16px;border-radius:999px;margin-bottom:16px;
+  }
+  .offer-tag b{color:#fff;font-weight:700}
+  .flame{filter:drop-shadow(0 0 6px rgba(251,113,133,.7))}
+  .price-compare{
+    display:flex;align-items:stretch;gap:0;justify-content:center;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--card-border);border-radius:16px;overflow:hidden;
+  }
+  .price{flex:1;padding:16px 18px;text-align:center}
+  .price.early{
+    background:linear-gradient(135deg,rgba(99,102,241,.18),rgba(236,72,153,.14));
+    border-right:1px solid var(--card-border);position:relative;
+  }
+  .price.early::after{
+    content:"BEST VALUE";position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;
+    letter-spacing:.06em;color:#fff;background:linear-gradient(110deg,var(--accent-1),var(--accent-3));
+    padding:3px 7px;border-radius:6px;
+  }
+  .plabel{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .pamount{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .price.early .pamount{
+    background:linear-gradient(110deg,var(--accent-1),var(--accent-2) 50%,var(--accent-3));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .pamount span{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .price.early .pamount span{-webkit-text-fill-color:var(--muted)}
+  .pamount s{color:var(--faint);text-decoration-color:var(--hot);text-decoration-thickness:2px}
+  .pnote{font-size:12px;margin-top:7px}
+  .price.early .pnote{color:#c4b5fd;font-weight:600}
+  .price.normal .pnote{color:var(--ok);font-weight:600}
+  .vs{display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--faint);padding:0 4px}
+  @media(max-width:480px){.pamount{font-size:25px}.price{padding:14px 10px}}
+
+  /* CENTER FORM CARD */
+  .form-card{
+    width:100%;max-width:520px;margin:38px auto 0;scroll-margin-top:88px;
+    background:linear-gradient(180deg,rgba(18,16,34,.74),rgba(12,10,24,.68));
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    padding:30px 30px 26px;
+    box-shadow:0 30px 80px -30px rgba(99,102,241,.45),0 1px 0 rgba(255,255,255,.06) inset;
+    text-align:left;position:relative;
+  }
+  .form-card h2{font-size:21px;letter-spacing:-.02em;margin-bottom:5px;text-align:center}
+  .form-card .fc-sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:22px}
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px;font-weight:500}
+  .field input,.field select,.field textarea{
+    width:100%;background:rgba(0,0,0,.28);
+    border:1px solid var(--card-border);border-radius:12px;
+    color:var(--text);font-family:inherit;font-size:15px;padding:12px 14px;
+    transition:border .15s,box-shadow .15s;
+  }
+  .field input::placeholder,.field textarea::placeholder{color:var(--faint)}
+  .field input:focus,.field select:focus,.field textarea:focus{
+    outline:none;border-color:var(--accent-2);
+    box-shadow:0 0 0 3px rgba(168,85,247,.18);
+  }
+  .field select{appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a0a0bd' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;}
+  .row{display:flex;gap:12px}
+  .row .field{flex:1}
+  .btns{display:flex;gap:12px;margin-top:20px}
+  .btn{
+    flex:1;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:600;
+    padding:13px 16px;cursor:pointer;transition:transform .12s,box-shadow .2s,background .2s;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-primary{
+    color:#fff;background:linear-gradient(110deg,var(--accent-1),var(--accent-2) 55%,var(--accent-3));
+    box-shadow:0 12px 30px -8px rgba(168,85,247,.6);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -10px rgba(168,85,247,.7)}
+  .btn-ghost{
+    color:var(--text);background:rgba(255,255,255,.06);border:1px solid var(--card-border);
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,.11)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .form-foot{font-size:12px;color:var(--faint);text-align:center;margin-top:14px}
+  .personalize{margin-top:4px;padding-top:16px;border-top:1px dashed rgba(255,255,255,.11)}
+  .pz-head{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:14px}
+  .pz-head span{color:var(--faint);font-weight:400}
+  .trust{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:30px;color:var(--faint);font-size:13px;flex-wrap:wrap}
+  .trust span{display:inline-flex;align-items:center;gap:7px}
+  .check{color:var(--ok)}
+
+  .msg{font-size:13.5px;border-radius:10px;padding:11px 14px;margin-top:14px;display:none}
+  .msg.show{display:block;animation:pop .3s ease}
+  .msg.success{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#a7f3d0}
+  .msg.error{background:rgba(251,113,133,.12);border:1px solid rgba(251,113,133,.3);color:#fecdd3}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* DEMO OUTPUT */
+  #demo{max-width:760px;margin:46px auto 0;scroll-margin-top:90px}
+  .demo-card{
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--card-border);border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 30px 80px -40px rgba(0,0,0,.8);text-align:left;
+    animation:rise .5s cubic-bezier(.2,.7,.2,1);
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  .spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent-2);margin:0 auto;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .demo-top{
+    display:flex;align-items:center;gap:10px;padding:14px 18px;
+    background:rgba(0,0,0,.25);border-bottom:1px solid var(--card-border);
+  }
+  .tdot{width:11px;height:11px;border-radius:50%}
+  .demo-top .meta{margin-left:8px;font-size:13px;color:var(--muted)}
+  .demo-top .live{margin-left:auto;font-size:12px;color:var(--ok);display:flex;align-items:center;gap:6px}
+  .demo-body{padding:24px 26px 28px}
+  .greet{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+  .greet .grad{font-weight:800}
+  .greet-sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .sec{margin-bottom:22px}
+  .sec-h{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .sec-h .ic{width:16px;height:16px;opacity:.9}
+  .item{
+    display:flex;gap:12px;padding:12px 14px;border-radius:12px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);margin-bottom:9px;
+  }
+  .badge{
+    flex-shrink:0;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:4px 8px;border-radius:7px;height:fit-content;
+  }
+  .b-hot{background:rgba(251,113,133,.16);color:var(--hot)}
+  .b-warn{background:rgba(251,191,36,.16);color:var(--warn)}
+  .b-ok{background:rgba(52,211,153,.16);color:var(--ok)}
+  .b-info{background:rgba(99,102,241,.18);color:#a5b4fc}
+  .item .it-body{flex:1;min-width:0}
+  .item .it-t{font-size:14.5px;font-weight:600;margin-bottom:2px}
+  .item .it-d{font-size:13px;color:var(--muted)}
+  .item .it-d em{color:#c7c7e0;font-style:normal}
+  .reco{
+    background:linear-gradient(135deg,rgba(99,102,241,.14),rgba(236,72,153,.1));
+    border:1px solid rgba(168,85,247,.3);border-radius:14px;padding:16px 18px;
+  }
+  .reco .rh{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#c4b5fd;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+  .reco p{font-size:14.5px;color:#ece9ff}
+  .demo-cta{display:flex;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap}
+  .demo-cta .note{font-size:13px;color:var(--faint)}
+
+  /* FEATURES */
+  section.block{padding:70px 0}
+  .block h3{font-size:clamp(26px,3.6vw,38px);letter-spacing:-.03em;text-align:center;margin-bottom:12px}
+  .block .lead{color:var(--muted);text-align:center;max-width:50ch;margin:0 auto 46px;font-size:16px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  @media(max-width:880px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}.row{flex-direction:column;gap:0}}
+  .feat{
+    background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:24px 22px;
+    transition:transform .2s,border .2s,background .2s;
+  }
+  .feat:hover{transform:translateY(-4px);border-color:rgba(168,85,247,.35);background:rgba(255,255,255,.06)}
+  .feat .fi{
+    width:42px;height:42px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;
+    background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(236,72,153,.2));font-size:20px;
+  }
+  .feat h4{font-size:16.5px;letter-spacing:-.01em;margin-bottom:7px}
+  .feat p{font-size:14px;color:var(--muted)}
+
+  /* HOW */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{position:relative;padding:26px 22px;border-radius:16px;background:var(--card);border:1px solid var(--card-border)}
+  .step .num{font-size:13px;font-weight:800;color:var(--accent-2);margin-bottom:10px}
+  .step h4{font-size:17px;margin-bottom:7px;letter-spacing:-.01em}
+  .step p{font-size:14px;color:var(--muted)}
+
+  footer{border-top:1px solid rgba(255,255,255,.06);padding:40px 0;margin-top:30px}
+  .foot-inner{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;color:var(--faint);font-size:13.5px}
+  .foot-inner .brand{font-size:17px}
+  .foot-right{text-align:right}
+  .foot-sig{font-style:italic;color:#c4b5fd;font-size:14px;margin-bottom:4px}
+  @media(max-width:560px){.foot-right{text-align:left}}
+  .sig-octo{display:inline-block;vertical-align:-3px;margin-left:5px}
+
+  /* floating "grab your spot" CTA */
+  .float-cta{
+    position:fixed;right:20px;bottom:20px;z-index:60;
+    display:inline-flex;align-items:center;gap:9px;
+    padding:13px 20px;border-radius:999px;
+    font-family:var(--font);font-weight:700;font-size:15px;color:#fff;text-decoration:none;
+    background:linear-gradient(110deg,var(--accent-1),var(--accent-2) 55%,var(--accent-3));
+    box-shadow:0 14px 34px -8px rgba(168,85,247,.65);
+    opacity:0;transform:translateY(18px);pointer-events:none;
+    transition:opacity .3s,transform .3s,box-shadow .2s;
+  }
+  .float-cta.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  .float-cta:hover{transform:translateY(-3px);box-shadow:0 22px 46px -10px rgba(168,85,247,.85)}
+  .float-cta svg{width:20px;height:20px;flex:0 0 auto}
+  .float-cta::after{content:"";position:absolute;inset:0;border-radius:999px;pointer-events:none;
+    animation:ctaRing 2.6s ease-out infinite}
+  @keyframes ctaRing{0%{box-shadow:0 0 0 0 rgba(168,85,247,.45)}70%,100%{box-shadow:0 0 0 16px rgba(168,85,247,0)}}
+  @media(max-width:480px){.float-cta span{display:none}.float-cta{padding:14px;right:16px;bottom:16px}}
+  @media (prefers-reduced-motion: reduce){.float-cta::after{animation:none}}
+</style>
+</head>
+<body>
+<div class="bg-glow">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="blob b4"></span>
+  <span class="blob b5"></span>
+</div>
+<div class="bg-grid"></div>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="brand">
+      <span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-label="Otto the octopus logo"><circle cx="12" cy="9.2" r="6.2" stroke="#fff" stroke-width="2.3"/><circle cx="9.7" cy="8.8" r="1.05" fill="#fff"/><circle cx="14.3" cy="8.8" r="1.05" fill="#fff"/><path d="M8 14.7q-1.2 2.6-0.3 5.3M10.6 15.4q-0.6 2.7 0.2 5.1M13.4 15.4q0.6 2.7-0.2 5.1M16 14.7q1.2 2.6 0.3 5.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      Otto <small>AI Chief of Staff</small>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a class="pill-count" href="#join"><span class="dot"></span><b id="navCount">10</b>&nbsp;founding spots left</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="join">
+  <div class="wrap">
+    <div class="eyebrow">🔥 Founding-member pricing — <b>only 10 spots</b></div>
+    <h1>The <span class="grad">chief of staff</span> every founder deserves.</h1>
+    <p class="sub">Otto triages your inbox, runs your calendar, tracks every follow-up, and briefs you each morning — so nothing slips and you stay on the important work.</p>
+
+    <!-- EARLY-ACCESS OFFER -->
+    <div class="offer">
+      <div class="offer-tag"><span class="flame">🔥</span> Founding-member offer · <b><span id="spotsLeft">10</span> of 10 spots left</b></div>
+      <div class="price-compare">
+        <div class="price early">
+          <div class="plabel">Early access</div>
+          <div class="pamount">$1,500<span>/mo</span></div>
+          <div class="pnote">Locked in for life</div>
+        </div>
+        <div class="vs">vs</div>
+        <div class="price normal">
+          <div class="plabel">Standard price after launch</div>
+          <div class="pamount"><s>$2,500</s><span>/mo</span></div>
+          <div class="pnote">Save $1,000 every month</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTERED WAITLIST FORM -->
+    <div class="form-card" id="formCard">
+      <h2>Claim a founding spot</h2>
+      <p class="fc-sub">$1,500/mo locked in for life — only 10 spots. Tell Otto your business &amp; see a live demo.</p>
+      <form id="waitForm" novalidate>
+        <div class="field">
+          <label for="email">Work email</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" autocomplete="email" required />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="biz">What kind of business do you run?</label>
+            <input type="text" id="biz" name="biz" placeholder="e.g. marketing agency, online store…" list="bizList" required />
+            <datalist id="bizList">
+              <option>Marketing / creative agency</option>
+              <option>E-commerce / online store</option>
+              <option>SaaS / tech startup</option>
+              <option>Consulting / professional services</option>
+              <option>Restaurant / hospitality</option>
+              <option>Real estate</option>
+              <option>Law firm / legal</option>
+              <option>Medical / clinic</option>
+              <option>Fitness / gym studio</option>
+              <option>Construction / trades</option>
+              <option>Nonprofit</option>
+              <option>Coaching / solopreneur</option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="size">Team size</label>
+            <select id="size" name="size">
+              <option value="Just me">Just me</option>
+              <option value="2–10" selected>2–10</option>
+              <option value="11–50">11–50</option>
+              <option value="51–200">51–200</option>
+              <option value="200+">200+</option>
+            </select>
+          </div>
+        </div>
+        <div class="personalize">
+          <div class="pz-head">✨ Make your demo realistic <span>(optional — the more you add, the sharper it gets)</span></div>
+          <div class="row">
+            <div class="field">
+              <label for="ownerName">Your first name</label>
+              <input type="text" id="ownerName" placeholder="e.g. Sarah" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label for="company">Company name</label>
+              <input type="text" id="company" placeholder="e.g. Northwind Co." autocomplete="organization" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="client">A key client, project, or contact</label>
+            <input type="text" id="client" placeholder="e.g. Acme Corp, the Q3 launch, your biggest account…" />
+          </div>
+        </div>
+        <div class="btns">
+          <button type="button" class="btn btn-ghost" id="demoBtn">▶ Run live demo</button>
+          <button type="submit" class="btn btn-primary">Claim my spot →</button>
+        </div>
+        <div class="msg" id="msg"></div>
+        <p class="form-foot">No spam. We'll only email you about early access.</p>
+      </form>
+    </div>
+
+    <div class="trust">
+      <span><span class="check">✓</span> Connects to Gmail &amp; Google Calendar</span>
+      <span><span class="check">✓</span> Acts only with your approval</span>
+      <span><span class="check">✓</span> Set up in minutes</span>
+    </div>
+
+    <!-- DEMO OUTPUT -->
+    <div id="demo"></div>
+  </div>
+</header>
+
+<section class="block" id="features">
+  <div class="wrap">
+    <h3>One agent. The whole back office.</h3>
+    <p class="lead">Otto does the four jobs a great chief of staff does — tuned to how <em>your</em> business actually runs.</p>
+    <div class="grid">
+      <div class="feat"><div class="fi">📥</div><h4>Inbox triage &amp; replies</h4><p>Sorts what matters, summarizes long threads, and drafts replies in your voice — you just hit send.</p></div>
+      <div class="feat"><div class="fi">📅</div><h4>Calendar &amp; scheduling</h4><p>Finds times, protects focus blocks, flags conflicts, and books meetings once you approve.</p></div>
+      <div class="feat"><div class="fi">✅</div><h4>Follow-up tracking</h4><p>Captures every commitment and open loop, then chases them so nothing falls through the cracks.</p></div>
+      <div class="feat"><div class="fi">🗞️</div><h4>Daily brief &amp; prep</h4><p>A morning rundown of your day, what needs you now, and prep notes before every meeting.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <h3>How Otto works</h3>
+    <p class="lead">Live in minutes, helpful on day one, smarter every week.</p>
+    <div class="steps">
+      <div class="step"><div class="num">STEP 01</div><h4>Connect your tools</h4><p>Securely link Gmail and Google Calendar. Otto reads context — it never acts on its own.</p></div>
+      <div class="step"><div class="num">STEP 02</div><h4>Tell it your business</h4><p>Otto learns your priorities, VIPs, and working style so its judgment matches yours.</p></div>
+      <div class="step"><div class="num">STEP 03</div><h4>Approve &amp; go</h4><p>Otto prepares everything and asks before sending or booking. You stay in control, always.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-inner">
+    <div class="brand"><span class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-label="Otto the octopus logo"><circle cx="12" cy="9.2" r="6.2" stroke="#fff" stroke-width="2.3"/><circle cx="9.7" cy="8.8" r="1.05" fill="#fff"/><circle cx="14.3" cy="8.8" r="1.05" fill="#fff"/><path d="M8 14.7q-1.2 2.6-0.3 5.3M10.6 15.4q-0.6 2.7 0.2 5.1M13.4 15.4q0.6 2.7-0.2 5.1M16 14.7q1.2 2.6 0.3 5.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></span> Otto</div>
+    <div class="foot-right">
+      <div class="foot-sig">“Go be brilliant. I’ve got the rest.” — Otto <svg class="sig-octo" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-label="octopus"><circle cx="12" cy="9.2" r="6.2" stroke="#c4b5fd" stroke-width="2.3"/><circle cx="9.7" cy="8.8" r="1.05" fill="#c4b5fd"/><circle cx="14.3" cy="8.8" r="1.05" fill="#c4b5fd"/><path d="M8 14.7q-1.2 2.6-0.3 5.3M10.6 15.4q-0.6 2.7 0.2 5.1M13.4 15.4q0.6 2.7-0.2 5.1M16 14.7q1.2 2.6 0.3 5.3" stroke="#c4b5fd" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+      <div>© 2026 Otto — your AI Chief of Staff. Built for people with too much to do.</div>
+    </div>
+  </div>
+</footer>
+
+<a href="#formCard" class="float-cta" aria-label="Grab your founding spot">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9.2" r="6.2" stroke="#fff" stroke-width="2.3"/><circle cx="9.7" cy="8.8" r="1.05" fill="#fff"/><circle cx="14.3" cy="8.8" r="1.05" fill="#fff"/><path d="M8 14.7q-1.2 2.6-0.3 5.3M10.6 15.4q-0.6 2.7 0.2 5.1M13.4 15.4q0.6 2.7-0.2 5.1M16 14.7q1.2 2.6 0.3 5.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>
+  <span>Grab your spot</span>
+</a>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="otto_waitlist_v1", SPOTS=10; // founding early-access spots
+  function list(){ try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]} }
+  function save(a){ localStorage.setItem(KEY,JSON.stringify(a)); }
+  function spotsLeft(){ return Math.max(0, SPOTS - list().length); }
+  function refresh(){
+    var left=spotsLeft();
+    document.getElementById("navCount").textContent=left;
+    var sl=document.getElementById("spotsLeft"); if(sl) sl.textContent=left;
+  }
+  refresh();
+
+  /* ---------- DEMO ENGINE ---------- */
+  // Classify free-text business into a profile key.
+  function classify(t){
+    t=(t||"").toLowerCase();
+    var map=[
+      ["agency",   ["agency","marketing","creative","ad ","advert","branding","design studio","pr ","social media"]],
+      ["ecommerce",["ecommerce","e-commerce","commerce","online store","shop","retail","store","dtc","brand","products","shopify"]],
+      ["saas",     ["saas","software","tech","startup","app","platform","b2b","developer","ai "]],
+      ["consulting",["consult","advisory","professional services","accounting","accountant","bookkeep","fractional"]],
+      ["restaurant",["restaurant","cafe","coffee","hospitality","bar","catering","food","kitchen","bakery"]],
+      ["realestate",["real estate","realtor","realty","property","broker","mortgage","leasing"]],
+      ["legal",    ["law","legal","attorney","lawyer","firm","counsel","paralegal"]],
+      ["medical",  ["medical","clinic","dental","dentist","health","practice","doctor","therapy","wellness","vet"]],
+      ["fitness",  ["fitness","gym","studio","yoga","pilates","trainer","coach studio","crossfit"]],
+      ["construction",["construction","contractor","trades","plumb","electric","hvac","builder","remodel","roofing","landscap"]],
+      ["nonprofit",["nonprofit","non-profit","charity","ngo","foundation","mission"]],
+      ["coaching", ["coach","solopreneur","creator","freelance","consultant","speaker","author","influencer"]]
+    ];
+    for(var i=0;i<map.length;i++){ for(var j=0;j<map[i][1].length;j++){ if(t.indexOf(map[i][1][j])>-1) return map[i][0]; } }
+    return "generic";
+  }
+
+  // Per-business demo content. Each: label, inbox[], calendar[], tasks[], reco
+  var P={
+    agency:{label:"agency",
+      inbox:[["hot","Client escalation — Northwind campaign","Their CMO wants the Q3 numbers <em>before</em> tomorrow's review. Draft reply ready for your approval."],
+             ["warn","New lead: 40-person SaaS, ~$12k/mo","Inbound from your site. Otto drafted a discovery-call invite with 3 time options."],
+             ["info","Designer flagged scope creep on Acme","Third round of 'small tweaks.' Otto summarized the thread and prepped a change-order note."]],
+      calendar:[["11:00 AM","Northwind quarterly review","Prep: last month's report + 2 open action items pulled."],
+                ["2:30 PM","New-biz pitch — Lumen Co.","Otto compiled their brand audit and 3 talking points."]],
+      tasks:[["warn","Send Acme change-order before EOD","you committed to this Tuesday — now overdue"],
+             ["ok","Invoice Northwind for May retainer","ball's in finance's court — Otto will chase Friday"]],
+      reco:"Two things need you this morning: the Northwind escalation (reply is drafted) and the Acme change-order that's gone overdue. Clear those two and your afternoon pitch is fully prepped — I'd block 30 min at 1:30 to review the Lumen deck."},
+    ecommerce:{label:"online store",
+      inbox:[["hot","Supplier delay — bestseller out of stock 2 wks","Affects your top SKU heading into a promo. Otto drafted a heads-up to the supplier + a backorder plan."],
+             ["warn","Klaviyo: abandoned-cart rate up 14%","Otto pulled the trend and flagged the checkout step where drop-off spiked."],
+             ["info","Influencer reply — collab terms","She accepted but wants product seeding first. Reply drafted."]],
+      calendar:[["10:00 AM","Ops sync — fulfillment SLAs","Prep: this week's late-shipment count + carrier notes."],
+                ["3:00 PM","Q3 promo planning","Otto pulled last promo's revenue + margin recap."]],
+      tasks:[["hot","Approve restock PO for top SKU","supplier needs confirmation today to hold inventory"],
+             ["ok","Reply to 3 VIP customer service tickets","drafts ready — all high-LTV repeat buyers"]],
+      reco:"Your morning priority is the stock-out on your bestseller — approve the restock PO and I'll send the supplier note immediately. After that, the abandoned-cart spike is worth 10 minutes: it's concentrated at the shipping step, which usually means an unexpected-cost surprise."},
+    saas:{label:"SaaS startup",
+      inbox:[["hot","Enterprise prospect — security questionnaire","Deal-blocking. Due Thursday. Otto pre-filled 80% from your last SOC2 answers."],
+             ["warn","Churn risk: key account usage down 60%","Otto spotted the drop and drafted a check-in to their champion."],
+             ["info","Investor update is due Friday","Otto assembled MRR, burn, and 2 wins into a draft."]],
+      calendar:[["9:30 AM","Standup","No prep needed."],
+                ["1:00 PM","Demo — mid-market prospect","Otto pulled their use case + 2 relevant case studies."],
+                ["4:00 PM","1:1 with Head of Eng","Open items: hiring plan, roadmap slip."]],
+      tasks:[["hot","Reply to enterprise security questionnaire","blocks a $48k ARR deal — draft 80% done"],
+             ["warn","Send investor update","due Friday — draft ready for your numbers check"]],
+      reco:"The enterprise security questionnaire is the highest-leverage thing on your plate — it's gating a $48k deal and I've already drafted 80% of it from your prior SOC2 answers. Knock that out first. The usage drop on your key account is an early churn signal; I'd send that check-in today while it's still recoverable."},
+    consulting:{label:"consulting practice",
+      inbox:[["hot","Client wants SOW revised before signing","$60k engagement. Otto redlined the scope and flagged 2 risky clauses."],
+             ["warn","Referral intro from past client","Warm lead. Otto drafted a reply + proposed intro call times."],
+             ["info","Team member out sick — coverage on Apex","Otto re-checked the week's deliverables for slippage."]],
+      calendar:[["11:30 AM","Apex Corp working session","Prep: last week's findings deck + open questions."],
+                ["3:30 PM","Proposal review — new prospect","Otto assembled scope, fees, and timeline draft."]],
+      tasks:[["hot","Return revised SOW to client","they're ready to sign — don't let it cool"],
+             ["ok","Submit May invoices","ball's with your bookkeeper — Otto queued the reminder"]],
+      reco:"Send the revised SOW back today — the client is ready to sign a $60k engagement and momentum matters. I've redlined it and flagged two clauses worth a second look. The warm referral is your other priority; a same-day reply doubles your odds of landing the call."},
+    restaurant:{label:"restaurant",
+      inbox:[["hot","Saturday: 30-top private booking inquiry","High-value. Otto drafted a reply with deposit terms + 2 menu options."],
+             ["warn","Food supplier raised produce prices 9%","Otto flagged the margin impact on your 3 top dishes."],
+             ["info","Two staff requested the same weekend off","Otto mapped the coverage gap for your review."]],
+      calendar:[["10:00 AM","Vendor delivery + inventory check","Prep: low-stock list auto-generated."],
+                ["4:00 PM","Pre-service staff briefing","Tonight: 2 large reservations + a VIP regular."]],
+      tasks:[["hot","Confirm Saturday private event","party needs an answer today to hold the date"],
+             ["warn","Update menu prices for produce increase","9% cost jump — Otto modeled new margins"]],
+      reco:"Lock in the Saturday 30-top first — it's your highest-value booking of the week and they need an answer today; the reply with deposit terms is ready. Then take 10 minutes on the produce price increase: it's quietly eating into your three best-selling dishes and a small menu adjustment protects the margin."},
+    realestate:{label:"real estate business",
+      inbox:[["hot","Offer received on 14 Oak St — expires 5 PM","Otto summarized the terms vs. asking and drafted your seller's update."],
+             ["warn","New buyer lead — pre-approved, $750k","Hot lead from your listing. Showing-request reply drafted."],
+             ["info","Inspection report back on Maple Ave","Otto pulled the 3 items likely to trigger renegotiation."]],
+      calendar:[["12:00 PM","Showing — 14 Oak St","Prep: comps + buyer's must-haves."],
+                ["5:00 PM","Closing prep call — title company","Open items: 2 documents outstanding."]],
+      tasks:[["hot","Respond to 14 Oak St offer","expires 5 PM — seller update drafted, needs your call"],
+             ["ok","Follow up with 3 warm buyer leads","drafts ready — all toured in the last week"]],
+      reco:"The 14 Oak St offer is time-boxed — it expires at 5 PM, so get your seller on the phone this morning; I've drafted the summary comparing it to asking. The new pre-approved $750k buyer is your other priority — a fast showing reply keeps them from booking with another agent."},
+    legal:{label:"law firm",
+      inbox:[["hot","Court filing deadline moved up to Wed","Otto flagged the conflict with your current workload and re-prioritized."],
+             ["warn","New client intake — commercial dispute","Otto ran a conflict-check prompt and drafted an engagement letter."],
+             ["info","Opposing counsel proposed new deposition dates","Otto checked your calendar and drafted a reply with options."]],
+      calendar:[["10:30 AM","Client call — settlement strategy","Prep: case summary + last offer on the table."],
+                ["2:00 PM","Document review — Henderson matter","Otto bundled the 4 priority docs."]],
+      tasks:[["hot","Finalize Wednesday court filing","deadline moved up — Otto flagged the time crunch"],
+             ["ok","Send engagement letter to new client","draft ready pending your conflict-check sign-off"]],
+      reco:"The filing deadline moving to Wednesday is the thing that reshapes your week — I've already re-sequenced your tasks around it and flagged where it collides with the Henderson review. Confirm the engagement letter for the new matter once you've cleared the conflict check; the draft is ready to go."},
+    medical:{label:"practice",
+      inbox:[["hot","Insurer denied 3 claims — resubmit by Fri","Otto identified the coding issue and drafted appeals."],
+             ["warn","Patient no-show rate up this month","Otto pulled the pattern — clustered on Monday mornings."],
+             ["info","New referral partner wants to connect","Reply with intro-call times drafted."]],
+      calendar:[["9:00 AM","Staff huddle","Today: full schedule + 2 new-patient intakes."],
+                ["1:30 PM","Vendor demo — scheduling software","Otto listed your must-have features."]],
+      tasks:[["hot","Approve 3 insurance claim appeals","resubmission deadline Friday — drafts ready"],
+             ["ok","Reply to referral partner","warm intro — draft queued"]],
+      reco:"The denied claims are your revenue priority — all three trace to the same coding issue, the appeals are drafted, and they must be resubmitted by Friday. Separately, your no-show spike is clustering on Monday mornings; a reminder-cadence tweak there usually recovers most of it."},
+    fitness:{label:"studio",
+      inbox:[["hot","Membership billing error hit 12 clients","Otto drafted an apology + fix note before they churn."],
+             ["warn","Popular instructor requesting schedule change","Otto mapped the impact on your busiest classes."],
+             ["info","Corporate wellness partnership inquiry","Recurring revenue lead. Reply drafted."]],
+      calendar:[["8:00 AM","Morning class check-in","Prep: today's attendance + 2 trial members."],
+                ["12:00 PM","Partnership call — corporate wellness","Otto pulled a package + pricing sheet."]],
+      tasks:[["hot","Resolve billing error for 12 members","fix + apology drafted — send before they cancel"],
+             ["ok","Confirm new class schedule","instructor change mapped for your approval"]],
+      reco:"Fix the billing error first — 12 members were overcharged and the apology-plus-correction note is ready; getting ahead of it prevents cancellations. The corporate wellness inquiry is worth protecting time for; that's recurring revenue and I've prepped your pricing sheet for the noon call."},
+    construction:{label:"contracting business",
+      inbox:[["hot","Inspector flagged an issue — crew idle","Otto summarized the fix needed and drafted a client update."],
+             ["warn","Material price quote expires today","Lumber order. Otto flagged the cost if you miss the window."],
+             ["info","New bid request — kitchen remodel","Otto drafted a reply + site-visit time options."]],
+      calendar:[["7:30 AM","Job site walk — Cedar project","Prep: open punch-list items."],
+                ["3:00 PM","Client meeting — change-order sign-off","Otto bundled the 2 pending change orders."]],
+      tasks:[["hot","Resolve inspection issue on Cedar","crew is idle until you decide — costs add up hourly"],
+             ["warn","Lock in lumber order before quote expires","price holds only until end of day"]],
+      reco:"The inspection issue is costing you money by the hour while the crew sits idle — that's your first call, and I've drafted the client update so you're not the bottleneck. Right behind it: the lumber quote expires today, so confirm that order before the price moves on you."},
+    nonprofit:{label:"nonprofit",
+      inbox:[["hot","Major donor asking for impact report","Renewal hinges on it. Otto drafted a one-pager from your latest numbers."],
+             ["warn","Grant deadline in 6 days","Otto flagged 2 sections still missing input from your team."],
+             ["info","Volunteer coordinator needs event approval","Reply drafted with your 2 open questions."]],
+      calendar:[["11:00 AM","Board prep call","Prep: fundraising progress + program metrics."],
+                ["2:00 PM","Donor cultivation lunch","Otto pulled this donor's giving history + interests."]],
+      tasks:[["hot","Send impact report to major donor","their renewal depends on it — draft ready"],
+             ["warn","Complete grant application","due in 6 days — 2 sections need team input"]],
+      reco:"Get the impact report to your major donor today — their renewal depends on it and I've drafted a clean one-pager from your latest numbers. The grant due in six days is the other clock to watch; two sections still need input, so I'd nudge those owners this morning while there's runway."},
+    coaching:{label:"practice",
+      inbox:[["hot","Client wants to reschedule + extend package","Revenue-positive. Otto drafted a reply with upsell + new times."],
+             ["warn","Podcast invite — great audience fit","Otto checked your calendar and drafted an enthusiastic yes."],
+             ["info","3 discovery-call requests piled up","All drafted with booking links."]],
+      calendar:[["10:00 AM","Client session — quarterly review","Prep: their goals + last session's action items."],
+                ["1:00 PM","Content batch block","Protected focus time — Otto held it."]],
+      tasks:[["hot","Reply to package-extension request","revenue-positive — draft includes the upsell"],
+             ["ok","Send 3 discovery-call booking links","drafts ready to fire off"]],
+      reco:"Reply to the package-extension client first — it's revenue-positive and the draft already proposes the upsell and new times. Then fire off the three discovery-call links so those leads don't cool. I protected your 1 PM content block — I'd keep it sacred; that's the work that grows the business."},
+    generic:{label:"business",
+      inbox:[["hot","A time-sensitive request needs your reply","Otto flagged it as the most urgent thread and drafted a response."],
+             ["warn","A promising new lead came in","Otto drafted a reply with proposed next-step times."],
+             ["info","A long thread needs a decision","Otto summarized 14 messages into the 3 points that matter."]],
+      calendar:[["11:00 AM","Key meeting","Prep notes + related thread pulled."],
+                ["3:00 PM","Planning block","Otto held this as focus time."]],
+      tasks:[["hot","Handle the overdue commitment","you said you'd do this Tuesday"],
+             ["ok","Follow up on the waiting item","ball's in their court — Otto will chase"]],
+      reco:"Two things actually need you this morning — the time-sensitive reply (drafted) and the commitment that's gone overdue. Clear those and the rest of the day is prepped. Tell me about your business and I'll tune all of this to exactly how you operate."}
+  };
+
+  function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c];});}
+
+  // Build the demo data object from local templates (used as the offline / fallback engine).
+  function templateData(biz,size,info){
+    info=info||{};
+    var key=classify(biz), p=P[key]||P.generic;
+    var hr=new Date().getHours();
+    var partOfDay=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
+    var name=(info.name||"").trim(), company=(info.company||"").trim(), client=(info.client||"").trim();
+
+    var inbox=p.inbox.slice(), tasks=p.tasks.slice(), reco=p.reco;
+    if(client){
+      inbox.unshift(["hot","Re: "+client+" — waiting on your reply",
+        client+" has been waiting on you for 2 days. Otto drafted a response for your approval."]);
+      inbox=inbox.slice(0,3);
+      tasks.unshift(["warn","Follow up with "+client,"you owe them a next step — Otto queued the nudge"]);
+      tasks=tasks.slice(0,3);
+      reco="Your freshest open loop is "+client+" — they've been waiting two days, so I put that reply at the top (it's drafted and ready). "+reco;
+    }
+    function row(a){return a.map(function(r){return {p:r[0],t:r[1],d:(r[2]||"").replace(/<\/?em>/g,"")};});}
+    function calRow(a){return a.map(function(r){return {time:r[0],t:r[1],d:r[2]};});}
+    return {
+      source:"template",
+      greeting:name?partOfDay+", "+name:partOfDay,
+      headline:company||(biz&&biz.trim()?biz.trim():p.label),
+      size:size,
+      inbox:row(inbox), calendar:calRow(p.calendar), tasks:row(tasks), reco:reco
+    };
+  }
+
+  // Map the live API response into the same shape; throws on a malformed payload so we fall back.
+  function normalizeApi(j,biz,size,info){
+    info=info||{};
+    if(!j||!Array.isArray(j.inbox)||!Array.isArray(j.calendar)||!Array.isArray(j.tasks)) throw new Error("bad schema");
+    function rows(a){return a.slice(0,4).map(function(x){return {p:String(x.priority||"info").toLowerCase(),t:String(x.title||""),d:String(x.detail||"")};});}
+    return {
+      source:"ai",
+      greeting:String(j.greeting||"Here’s your"),
+      headline:String(j.headline||info.company||biz||"business"),
+      size:size,
+      inbox:rows(j.inbox),
+      calendar:j.calendar.slice(0,4).map(function(x){return {time:String(x.time||""),t:String(x.title||""),d:String(x.detail||"")};}),
+      tasks:rows(j.tasks),
+      reco:String(j.recommendation||"")
+    };
+  }
+
+  function loadingCard(){
+    return '<div class="demo-card"><div class="demo-top">'+
+      '<span class="tdot" style="background:#fb7185"></span><span class="tdot" style="background:#fbbf24"></span><span class="tdot" style="background:#34d399"></span>'+
+      '<span class="meta">Otto · daily brief</span><span class="live"><span class="dot"></span>thinking…</span></div>'+
+      '<div class="demo-body" style="text-align:center;padding:50px 26px">'+
+      '<div class="spinner"></div>'+
+      '<div style="color:var(--muted);font-size:14px;margin-top:18px">Otto is reading your business and writing your brief…</div>'+
+      '</div></div>';
+  }
+
+  // Shared renderer. Every field is escaped on output — producers pass plain text.
+  function renderBriefHTML(d){
+    function items(arr){
+      return arr.map(function(r){
+        var cls={hot:"b-hot",warn:"b-warn",ok:"b-ok",info:"b-info"}[r.p]||"b-info";
+        var lab={hot:"Now",warn:"Soon",ok:"Queued",info:"FYI"}[r.p]||"FYI";
+        return '<div class="item"><span class="badge '+cls+'">'+lab+'</span><div class="it-body"><div class="it-t">'+esc(r.t)+'</div><div class="it-d">'+esc(r.d)+'</div></div></div>';
+      }).join("");
+    }
+    function cal(arr){
+      return arr.map(function(r){
+        return '<div class="item"><span class="badge b-info">'+esc(r.time)+'</span><div class="it-body"><div class="it-t">'+esc(r.t)+'</div><div class="it-d">'+esc(r.d)+'</div></div></div>';
+      }).join("");
+    }
+    var dateStr=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    var note=d.source==="ai"
+      ? 'Generated live by Otto’s AI for your business.'
+      : 'Sample preview. Connect Otto to power this from your real Gmail &amp; Calendar.';
+    var html=''+
+    '<div class="demo-card">'+
+      '<div class="demo-top">'+
+        '<span class="tdot" style="background:#fb7185"></span><span class="tdot" style="background:#fbbf24"></span><span class="tdot" style="background:#34d399"></span>'+
+        '<span class="meta">Otto · daily brief</span>'+
+        '<span class="live"><span class="dot"></span>'+(d.source==="ai"?"AI-generated":"live demo")+'</span>'+
+      '</div>'+
+      '<div class="demo-body">'+
+        '<div class="greet">'+esc(d.greeting)+' — here’s your <span class="grad">'+esc(d.headline)+'</span> brief.</div>'+
+        '<div class="greet-sub">'+esc(d.size)+' · '+dateStr+' · generated from what you told me</div>'+
+        '<div class="sec"><div class="sec-h">📥 Inbox triage</div>'+items(d.inbox)+'</div>'+
+        '<div class="sec"><div class="sec-h">📅 Today on your calendar</div>'+cal(d.calendar)+'</div>'+
+        '<div class="sec"><div class="sec-h">✅ Needs you / open loops</div>'+items(d.tasks)+'</div>'+
+        '<div class="reco"><div class="rh">🧭 Otto’s recommendation</div><p>'+esc(d.reco)+'</p></div>'+
+        '<div class="demo-cta">'+
+          '<button class="btn btn-primary" id="demoJoin" style="flex:0 0 auto;padding:11px 22px">Get this for real → claim your spot</button>'+
+          '<span class="note">'+note+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+    var el=document.getElementById("demo");
+    el.innerHTML=html;
+    el.scrollIntoView({behavior:"smooth",block:"start"});
+    var j=document.getElementById("demoJoin");
+    if(j) j.addEventListener("click",function(){document.getElementById("formCard").scrollIntoView({behavior:"smooth",block:"center"});document.getElementById("email").focus();});
+  }
+
+  // Try the live AI endpoint; gracefully fall back to local templates (offline / file:// / API error).
+  function runDemo(biz,size,info){
+    info=info||{};
+    var demoEl=document.getElementById("demo");
+    demoEl.innerHTML=loadingCard();
+    demoEl.scrollIntoView({behavior:"smooth",block:"start"});
+    var ctrl=new AbortController(); var to=setTimeout(function(){ctrl.abort();},20000);
+    return fetch("/api/demo",{
+      method:"POST",headers:{"Content-Type":"application/json"},signal:ctrl.signal,
+      body:JSON.stringify({biz:biz,size:size,name:info.name,company:info.company,client:info.client})
+    }).then(function(res){ if(!res.ok) throw new Error("status "+res.status); return res.json(); })
+      .then(function(j){ clearTimeout(to); renderBriefHTML(normalizeApi(j,biz,size,info)); })
+      .catch(function(){ clearTimeout(to); renderBriefHTML(templateData(biz,size,info)); });
+  }
+
+  /* ---------- WIRING ---------- */
+  var form=document.getElementById("waitForm"),
+      msg=document.getElementById("msg");
+
+  function showMsg(text,type){msg.textContent=text;msg.className="msg show "+type;}
+  function getInfo(){
+    return {
+      name:document.getElementById("ownerName").value,
+      company:document.getElementById("company").value,
+      client:document.getElementById("client").value
+    };
+  }
+
+  document.getElementById("demoBtn").addEventListener("click",function(){
+    var biz=document.getElementById("biz").value.trim();
+    var size=document.getElementById("size").value;
+    if(!biz){showMsg("Type your kind of business above, then I'll run the demo. ✍️","error");document.getElementById("biz").focus();return;}
+    msg.className="msg";
+    var info=getInfo();
+    var btn=this; btn.disabled=true; var orig=btn.textContent; btn.textContent="Generating…";
+    runDemo(biz,size,info).then(function(){btn.disabled=false;btn.textContent=orig;});
+  });
+
+  form.addEventListener("submit",function(e){
+    e.preventDefault();
+    var email=document.getElementById("email").value.trim();
+    var biz=document.getElementById("biz").value.trim();
+    var size=document.getElementById("size").value;
+    var ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if(!ok){showMsg("Please enter a valid email so we can reach you. 📧","error");return;}
+    if(!biz){showMsg("Tell us your kind of business so Otto can tailor your setup.","error");document.getElementById("biz").focus();return;}
+    var a=list();
+    if(a.some(function(x){return x.email.toLowerCase()===email.toLowerCase();})){
+      showMsg("You're already on the list — we'll be in touch soon! 🎉","success");
+    }else{
+      var wasOpen=spotsLeft()>0;
+      var info=getInfo();
+      a.push({email:email,biz:biz,size:size,name:info.name,company:info.company,client:info.client,ts:Date.now()});
+      save(a);refresh();
+      if(wasOpen){
+        showMsg("🎉 You claimed founding spot #"+a.length+" of "+SPOTS+" — $1,500/mo locked in for life. Otto ran your demo below — scroll down.","success");
+      }else{
+        showMsg("Founding spots are full, but you're on the standard waitlist (#"+a.length+"). We'll be in touch! Otto ran your demo below.","success");
+      }
+      if(!document.getElementById("demo").innerHTML.trim()) runDemo(biz,size,info);
+      form.querySelector(".btn-primary").textContent="Joined ✓";
+    }
+  });
+})();
+</script>
+<script>
+(function(){
+  var cta=document.querySelector('.float-cta');
+  if(!cta) return;
+  function toggle(){ if(window.scrollY>500){ cta.classList.add('show'); } else { cta.classList.remove('show'); } }
+  window.addEventListener('scroll',toggle,{passive:true});
+  toggle();
+})();
+</script>
+</body>
+</html>

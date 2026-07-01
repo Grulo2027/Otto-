@@ -1,0 +1,10 @@
+{
+  "name": "otto-landing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Otto — AI Chief of Staff landing page + live AI demo backend",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}
